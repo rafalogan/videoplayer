@@ -1,0 +1,17 @@
+# idea's
+\.idea
+\.vscode
+
+# files
+.DS_Store
+.env
+
+# folders
+\dist
+\build
+data/data-base
+\coverage
+
+# Modules
+node_modules
+
