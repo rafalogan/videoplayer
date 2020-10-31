@@ -1,5 +1,7 @@
 class VideoComponent {
-	constructor() {}
+	constructor() {
+		this.modal = {};
+	}
 
 	initializePlayer() {
 		const player = videojs('vid');
@@ -10,5 +12,31 @@ class VideoComponent {
 		});
 
 		player.addChild(modal);
+		player.on('play', () => modal.close());
+
+		this.modal = modal;
+	}
+
+	configureModal(selected) {
+		const modal = this.modal
+		modal.on('modalopen', this.getMotalTamplate(selected, modal))
+		modal.open()
+	}
+
+	getMotalTamplate(options, modal) {
+		return () => {
+			const [option1, option2] = options;
+
+			modal.contentEl().innerHTML = `<div class="overlay">
+																				<div class="videoButtonWrapper">
+																					<button class="btn btn-dark" onclick="window.nextChunk('${option1}')">
+																							${option1}
+																					</button>
+																					<button class="btn btn-dark" onclick="window.nextChunk('${option2}')">
+																							${option2}
+																					</button>
+																				</div>
+																		</div>`
+		}
 	}
 }

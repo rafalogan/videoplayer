@@ -3,6 +3,7 @@ RESOLUTIONS=(
 	144
 	360
 	720
+	1080
 )
 
 
@@ -26,8 +27,10 @@ for mediafile in `ls $ASSETSFOLDER | grep .mp4`; do
 			RATE=300k
 		elif [ $resolution == 360 ]; then
 		  RATE=400k
-		else
+		elif [ $resolution == 720 ]; then
 			RATE=1500k
+		else
+			RATE=3500k
 		fi
 
 		if [ $resolution == 144 ]; then

@@ -1,11 +1,14 @@
 class VideoMediaPlayer {
-	constructor({ manifestJSON, network }) {
+	constructor({ manifestJSON, network, videoComponent }) {
 		this.manifestJSON = manifestJSON
 		this.network = network;
+		this.videoComponent = videoComponent;
 		this.videoElement = null;
 		this.sourceBuffer = null;
+		this.activeItem = {}
 		this.selected = {}
-		this.videoDuration = 0
+		this.videoDuration = 0;
+		this.selections = [];
 	}
 
 
@@ -32,17 +35,87 @@ class VideoMediaPlayer {
 
 				mediaSource.duration = this.videoDuration;
 				await this.fileDownload(selected.url);
+				setInterval(this.waitForQuestions.bind(this), 200)
 			} catch (err) {
 				console.log(err)
 			}
 		}
 	}
 
+	_clearString(string) {
+		if (string) return string.toLowerCase()
+			.replace(new RegExp(/[àáâãäå]/g),'a')
+			.replace(new RegExp(/æ/g),'ae')
+			.replace(new RegExp(/ç/g),'c')
+			.replace(new RegExp(/[èéêë]/g),'e')
+			.replace(new RegExp(/[ìíîï]/g),'i')
+			.replace(new RegExp(/ñ/g),'n')
+			.replace(new RegExp(/[òóôõö]/g),'o')
+			.replace(new RegExp(/œ/g),'oe')
+			.replace(new RegExp(/[ùúûü]/g),'u')
+			.replace(new RegExp(/[ýÿ]/g),'y');
+
+		return '';
+	}
+
+	async currentFileResolution() {
+		const LOWEST_RESOLUTION = 144;
+		const prepareUrl = {
+			url: this.manifestJSON.finalizar.url,
+			fileResolution: LOWEST_RESOLUTION,
+			fileResolutionTag: this.manifestJSON.fileResolutionTag,
+			hostTag: this.manifestJSON.hostTag
+		}
+
+		const url = this.network.parseManifestUrl(prepareUrl);
+
+		return this.network.getProperResolution(url);
+
+	}
+
+	async nextChunk(data) {
+		try {
+			const key = this._clearString(data);
+			const selected  = this.manifestJSON[key]
+
+			this.selected = {
+				...selected,
+				// adjust the time when the modal will appear, basied in current time.
+				at: parseInt(this.videoElement.currentTime + selected.at)
+			}
+
+			this.manageLag(selected)
+			this.videoElement.play();
+
+			await this.fileDownload(selected.url);
+		} catch (err) {
+			console.error(err);
+		}
+	}
+
+	manageLag(selected) {
+		if (!!~this.selections.indexOf(selected.url)) return selected.at += 5;
+		this.selections.push(selected.url);
+	}
+
+	waitForQuestions() {
+		const currentTime = parseInt(this.videoElement.currentTime);
+		const option = this.selected.at === currentTime;
+
+		if (!option) return;
+		if (this.activeItem.url === this.selected.url) return;
+
+		this.videoComponent.configureModal(this.selected.options);
+		this.activeItem = this.selected
+	}
+
 	async fileDownload(url) {
 		try {
+			const fileResolution = await this.currentFileResolution();
+			console.info('Current Resolution', fileResolution);
 			const prepareUrl = {
 				url,
-				fileResolution: 720,
+				fileResolution,
 				fileResolutionTag: this.manifestJSON.fileResolutionTag,
 				hostTag: this.manifestJSON.hostTag
 			}
@@ -59,7 +132,7 @@ class VideoMediaPlayer {
 	setVideoPlayerDuration(finalUrl) {
 		const bars = finalUrl.split('/');
 		const [name, videoDuration] = bars[bars.length - 1].split('-');
-		this.videoDuration += videoDuration
+		this.videoDuration += parseFloat(videoDuration);
 	}
 
 	async processBufferSegments(allSegments) {

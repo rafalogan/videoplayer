@@ -11,7 +11,7 @@
 \build
 data/data-base
 \coverage
-assets/timeline
+\timeline
 
 # Modules
 node_modules
